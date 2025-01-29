@@ -1,0 +1,107 @@
+# Import necessary libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load the dataset
+data = pd.read_csv("C:\\Users\\tejas\\OneDrive\\Documents\\Coffee_sales.csv")
+
+# Display the first few rows of the dataset
+print(data.head())
+
+# Convert 'Date' to datetime type
+data['date'] = pd.to_datetime(data['date'])
+
+# Exploratory Data Analysis (EDA)
+# Total revenue over time
+plt.figure(figsize=(10, 6))
+daily_revenue = data.groupby('date')['money'].sum().reset_index()
+sns.lineplot(data=daily_revenue, x='date', y='money')
+plt.title('Total Coffee Revenue Over Time')
+plt.xlabel('Date')
+plt.ylabel('Total Revenue')
+plt.xticks(rotation=45)
+plt.show()
+
+# Revenue by product
+plt.figure(figsize=(10, 6))
+revenue_by_product = data.groupby('coffee_name')['money'].sum().reset_index()
+sns.barplot(data=revenue_by_product, x='coffee_name', y='money')
+plt.title('Total Revenue by Coffee Product')
+plt.xlabel('Coffee Product')
+plt.ylabel('Total Revenue')
+plt.xticks(rotation=45)
+plt.show()
+
+# Revenue by payment type
+plt.figure(figsize=(10, 6))
+revenue_by_payment = data.groupby('cash_type')['money'].sum().reset_index()
+sns.barplot(data=revenue_by_payment, x='cash_type', y='money')
+plt.title('Total Revenue by Payment Type')
+plt.xlabel('Payment Type')
+plt.ylabel('Total Revenue')
+plt.xticks(rotation=45)
+plt.show()
+
+# Assuming the dataset has a 'CustomerID' column
+# Group by CustomerID and aggregate total revenue
+customer_data = data.groupby('card').agg({'money': 'sum'}).reset_index()
+
+# Perform K-means clustering
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+
+# Scale the data
+scaler = StandardScaler()
+customer_data_scaled = scaler.fit_transform(customer_data[['money']])
+
+# Determine the optimal number of clusters using the elbow method
+inertia = []
+for i in range(1, 11):
+    kmeans = KMeans(n_clusters=i, random_state=42)
+    kmeans.fit(customer_data_scaled)
+    inertia.append(kmeans.inertia_)
+
+# Plot the elbow curve
+plt.figure(figsize=(10, 6))
+plt.plot(range(1, 11), inertia, marker='o')
+plt.title('Elbow Method for Optimal Clusters')
+plt.xlabel('Number of Clusters')
+plt.ylabel('Inertia')
+plt.show()
+
+# Fit K-means with the optimal number of clusters (e.g., 3)
+optimal_clusters = 3
+kmeans = KMeans(n_clusters=optimal_clusters, random_state=42)
+customer_data['Cluster'] = kmeans.fit_predict(customer_data_scaled)
+
+# Visualize the clusters
+plt.figure(figsize=(10, 6))
+sns.scatterplot(data=customer_data, x='money', y='Cluster', hue='Cluster', palette='viridis')
+plt.title('Customer Segmentation Based on Revenue')
+plt.xlabel('Total Revenue')
+plt.ylabel('Cluster')
+plt.show()
+
+# 3. Coffee Consumption Trends Analysis
+# Objective: Analyze trends in coffee consumption over time.
+
+# Create a new column for Month-Year
+data['Month-Year'] = data['date'].dt.to_period('M')
+
+# Group by Month-Year and Coffee Name to get consumption trends
+monthly_consumption = data.groupby(['Month-Year', 'coffee_name']).agg({'money': 'sum'}).reset_index()
+
+# Pivot the data for better visualization
+monthly_consumption_pivot = monthly_consumption.pivot(index='Month-Year', columns='coffee_name', values='money').fillna(0)
+
+# Plot the consumption trends
+plt.figure(figsize=(12, 6))
+monthly_consumption_pivot.plot(kind='line', marker='o')
+plt.title('Coffee Consumption Trends Over Time')
+plt.xlabel('Month-Year')
+plt.ylabel('Total Revenue')
+plt.xticks(rotation=45)
+plt.legend(title='Coffee Product')
+plt.show()
+
